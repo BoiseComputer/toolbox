@@ -254,7 +254,7 @@ EOF
 
 show_intro() {
     # Affichage sans fermeture automatique
-  dialog --backtitle "Foclabroc Toolbox" --exit-label "$TXT_EXIT_LABEL" --title "$TXT_WELCOME_TITLE" --textbox "$tmpfile2" 20 78 &
+  dialog --backtitle "Foclabroc Toolbox" --ok-label "$TXT_INFO_OK_LABEL" --title "$TXT_WELCOME_TITLE" --textbox "$tmpfile2" 20 78 &
     pid=$!
     sleep 3
     kill "$pid"
