@@ -545,6 +545,13 @@ main_menu() {
 # Lancer les vérifications et afficher le menu
 choose_language
 export LANG_UI
+if [ "$LANGUAGE" = "en" ]; then
+  export LANG=en_US.UTF-8
+  export LC_ALL=en_US.UTF-8
+else
+  export LANG=fr_FR.UTF-8
+  export LC_ALL=fr_FR.UTF-8
+fi
 set_language_strings
 write_intro_files
 show_intro

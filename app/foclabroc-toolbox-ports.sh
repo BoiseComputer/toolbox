@@ -511,6 +511,13 @@ main_menu() {
 choose_language
 set_language_strings
 export LANG_UI
+if [ "$LANGUAGE" = "en" ]; then
+  export LANG=en_US.UTF-8
+  export LC_ALL=en_US.UTF-8
+else
+  export LANG=fr_FR.UTF-8
+  export LC_ALL=fr_FR.UTF-8
+fi
 show_intro
 show_info
 arch_check
