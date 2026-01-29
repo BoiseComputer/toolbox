@@ -29,6 +29,9 @@ use_shadow = ON
 # Turn color support ON or OFF
 use_colors = ON
 
+# Use ASCII line characters for borders (avoid garbled ACS chars)
+ascii_lines = ON
+
 # Screen color
 screen_color = (WHITE,RED,ON)
 
