@@ -108,6 +108,7 @@ EOF
     MENU_MAIN_15="[Exit]             -> Exit the script"
 
     TXT_EXIT_TITLE="Exit"
+    TXT_EXIT_LABEL=">EXIT<"
     TXT_THANKS_LINE="                     THANK YOU FOR USING MY TOOLBOX                     "
     TXT_X86_ONLY_LINE="                        FOR BATOCERA PC X86_64 ONLY                        "
   else
@@ -178,6 +179,7 @@ EOF
     MENU_MAIN_15="[Exit]             -> Quitter le script"
 
     TXT_EXIT_TITLE="Quitter"
+    TXT_EXIT_LABEL=">QUITTER<"
     TXT_THANKS_LINE="                      MERCI D'AVOIR UTILISÉ MA TOOLBOX                    "
     TXT_X86_ONLY_LINE="                    POUR BATOCERA PC X86_64 UNIQUEMENT                    "
   fi
@@ -223,7 +225,7 @@ EOF
 
 show_intro() {
     # Affichage sans fermeture automatique
-  dialog --backtitle "Foclabroc Toolbox" --exit-label ">POUPIPOU<" --title "$TXT_WELCOME_TITLE" --textbox "$tmpfile2" 20 78 &
+  dialog --backtitle "Foclabroc Toolbox" --exit-label "$TXT_EXIT_LABEL" --title "$TXT_WELCOME_TITLE" --textbox "$tmpfile2" 20 78 &
     pid=$!
     sleep 3
     kill "$pid"

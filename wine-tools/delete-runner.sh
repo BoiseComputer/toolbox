@@ -1,11 +1,53 @@
 #!/bin/bash
 
+LANG_UI="fr"
+
+select_language() {
+    CHOICE=$(dialog --clear --backtitle "Foclabroc Toolbox" --title "Language / Langue" \
+        --menu "\nChoose your language / Choisissez votre langue :\n " 12 60 2 \
+        1 "English" \
+        2 "Français" \
+        2>&1 >/dev/tty)
+
+    case $CHOICE in
+        1) LANG_UI="en" ;;
+        2|"") LANG_UI="fr" ;;
+    esac
+}
+
+tr() {
+    case "$LANG_UI:$1" in
+        en:DIR_MISSING) echo "The folder $CUSTOM does not exist.";;
+        fr:DIR_MISSING) echo "Le dossier $CUSTOM n'existe pas.";;
+        en:NO_RUNNER) echo "\nNo runner found in $CUSTOM.";;
+        fr:NO_RUNNER) echo "\nAucun runner trouvé dans $CUSTOM.";;
+        en:BACK) echo "Back to previous menu";;
+        fr:BACK) echo "Retour au menu précédent";;
+        en:MENU_TITLE) echo "Delete custom runner";;
+        fr:MENU_TITLE) echo "Suppression de runner custom";;
+        en:MENU_PROMPT) echo "\nSelect a runner to delete:\n ";;
+        fr:MENU_PROMPT) echo "\nSélectionnez un runner à supprimer :\n ";;
+        en:BACK_WINE) echo "\nReturn to Wine Tools menu...";;
+        fr:BACK_WINE) echo "\nRetour Menu Wine Tools...";;
+        en:CONFIRM) echo "\nDo you really want to delete runner '$NOM' ?";;
+        fr:CONFIRM) echo "\nVoulez-vous vraiment supprimer le runner '$NOM' ?";;
+        en:DELETED) echo "\nRunner '$NOM' has been deleted.";;
+        fr:DELETED) echo "\nLe Runner '$NOM' a été supprimé.";;
+        en:DELETE_FAIL) echo "\nDeletion failed or invalid folder.";;
+        fr:DELETE_FAIL) echo "\nSuppression échouée ou dossier invalide.";;
+        en:CANCELLED) echo "\nDeletion cancelled.";;
+        fr:CANCELLED) echo "\nSuppression annulée.";;
+    esac
+}
+
+select_language
+
 # Chemin des dossiers à lister
 CUSTOM="/userdata/system/wine/custom"
 
 # Vérifie si le dossier existe
 if [ ! -d "$CUSTOM" ]; then
-    dialog --backtitle "Foclabroc Toolbox" --infobox "Le dossier $CUSTOM n'existe pas." 7 50 2>&1 >/dev/tty
+    dialog --backtitle "Foclabroc Toolbox" --infobox "$(tr DIR_MISSING)" 7 50 2>&1 >/dev/tty
     clear
     exit 1
 fi
@@ -17,7 +59,7 @@ while true; do
 
     # Vérifie s'il y a des dossiers
     if [ ${#DOSSIERS[@]} -eq 0 ]; then
-        dialog --backtitle "Foclabroc Toolbox" --infobox "\nAucun runner trouvé dans $CUSTOM." 7 50 2>&1 >/dev/tty
+        dialog --backtitle "Foclabroc Toolbox" --infobox "$(tr NO_RUNNER)" 7 50 2>&1 >/dev/tty
         sleep 2
         break
     fi
@@ -32,17 +74,17 @@ while true; do
     done
 
     # Ajout de l'option retour
-    LISTE+=("<- [Retour]" "Retour au menu précédent")
+    LISTE+=("<- [Retour]" "$(tr BACK)")
 
     # Affiche le menu de sélection
-    CHOIX=$(dialog --clear --backtitle "Foclabroc Toolbox" --title "Suppression de runner custom" \
-        --menu "\nSélectionnez un runner à supprimer :\n " 25 105 15 \
+    CHOIX=$(dialog --clear --backtitle "Foclabroc Toolbox" --title "$(tr MENU_TITLE)" \
+        --menu "$(tr MENU_PROMPT)" 25 105 15 \
         "${LISTE[@]}" \
         3>&1 1>&2 2>&3)
 
     # Si annulation ou retour
     if [ -z "$CHOIX" ] || [ "$CHOIX" = "<- [Retour]" ]; then
-        dialog --backtitle "Foclabroc Toolbox" --infobox "\nRetour Menu Wine Tools..." 5 60 2>&1 >/dev/tty
+        dialog --backtitle "Foclabroc Toolbox" --infobox "$(tr BACK_WINE)" 5 60 2>&1 >/dev/tty
         sleep 1
         exec bash <(curl -Ls https://raw.githubusercontent.com/foclabroc/toolbox/refs/heads/main/wine-tools/wine.sh)
     fi
@@ -51,20 +93,20 @@ while true; do
     NOM=$(echo "$CHOIX" | sed 's/^-> \[\(.*\)\]$/\1/')
 
     # Confirmation
-    dialog --backtitle "Foclabroc Toolbox" --title "Confirmation" --yesno "\nVoulez-vous vraiment supprimer le runner '$NOM' ?" 8 50 2>&1 >/dev/tty
+    dialog --backtitle "Foclabroc Toolbox" --title "Confirmation" --yesno "$(tr CONFIRM)" 8 50 2>&1 >/dev/tty
     REPONSE=$?
     cd /tmp || exit 1
     if [ "$REPONSE" -eq 0 ]; then
         if [[ -n "$NOM" && "$NOM" != "/" && -d "$CUSTOM/$NOM" ]]; then
             rm -rf "$CUSTOM/$NOM"
-            dialog --backtitle "Foclabroc Toolbox" --infobox "\nLe Runner '$NOM' a été supprimé." 6 50 2>&1 >/dev/tty
+            dialog --backtitle "Foclabroc Toolbox" --infobox "$(tr DELETED)" 6 50 2>&1 >/dev/tty
             sleep 2
         else
-            dialog --backtitle "Foclabroc Toolbox" --infobox "\nSuppression échouée ou dossier invalide." 6 50 2>&1 >/dev/tty
+            dialog --backtitle "Foclabroc Toolbox" --infobox "$(tr DELETE_FAIL)" 6 50 2>&1 >/dev/tty
             sleep 3
         fi
     else
-        dialog --backtitle "Foclabroc Toolbox" --infobox "\nSuppression annulée." 6 50 2>&1 >/dev/tty
+        dialog --backtitle "Foclabroc Toolbox" --infobox "$(tr CANCELLED)" 6 50 2>&1 >/dev/tty
         sleep 1
     fi
 done
