@@ -1,9 +1,22 @@
 #!/bin/bash
 
 export DIALOGRC="/userdata/system/pro/extra/.dialogrc"
-LANG_UI="fr"
+LANG_UI="${LANG_UI:-}"
+LANG_FILE="/userdata/system/pro/lang_ui"
+
+if [ -z "$LANG_UI" ] && [ -f "$LANG_FILE" ]; then
+    LANG_UI=$(cat "$LANG_FILE")
+fi
+
+if [ "$LANG_UI" != "en" ] && [ "$LANG_UI" != "fr" ]; then
+    LANG_UI=""
+fi
 
 select_language() {
+    if [ -n "$LANG_UI" ]; then
+        return
+    fi
+
     CHOICE=$(dialog --clear --backtitle "Foclabroc Toolbox" --title "Language / Langue" \
         --menu "\nChoose your language / Choisissez votre langue :\n " 12 60 2 \
         1 "English" \
@@ -14,6 +27,8 @@ select_language() {
         1) LANG_UI="en" ;;
         2|"") LANG_UI="fr" ;;
     esac
+
+    echo "$LANG_UI" > "$LANG_FILE"
 }
 
 tr() {

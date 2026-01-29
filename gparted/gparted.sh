@@ -1,5 +1,25 @@
 #!/bin/bash
 
+LANG_UI="fr"
+if [[ "$LANG" == en* ]]; then
+    LANG_UI="en"
+fi
+
+tr() {
+    case "$LANG_UI:$1" in
+        en:INSTALLING) echo "Installation of GParted in progress...";;
+        fr:INSTALLING) echo "Installation de Gparted en cours...";;
+        en:DL_FAIL) echo "Failed to download $APPNAME AppImage. Exiting.";;
+        fr:DL_FAIL) echo "Échec du téléchargement de $APPNAME AppImage. Arrêt.";;
+        en:ICON_FAIL) echo "Failed to download $APPNAME icon. Exiting.";;
+        fr:ICON_FAIL) echo "Échec du téléchargement de l'icône $APPNAME. Arrêt.";;
+        en:LAUNCH_FAIL) echo "Failed to download $APPNAME launcher. Exiting.";;
+        fr:LAUNCH_FAIL) echo "Échec du téléchargement du launcher $APPNAME. Arrêt.";;
+        en:INSTALL_DONE) echo "Installation complete! You can now launch Gparted from the F1 menu.";;
+        fr:INSTALL_DONE) echo "Installation terminée ! Vous pouvez désormais lancer Gparted depuis le menu « F1 applications ».";;
+    esac
+}
+
 # Define variables
 APPNAME="GParted"
 REPO_BASE_URL="https://github.com/foclabroc/toolbox/raw/refs/heads/main/gparted/extra/"
@@ -21,21 +41,21 @@ mkdir -p "$APP_CONFIG_DIR" "$ADDONS_DIR/${APPNAME,,}/extra"
 
 # Download the AppImage
 appimage_url="${REPO_BASE_URL}${AMD_SUFFIX}"
-echo -e "\e[1;34mInstallation de Gparted en cours...\e[1;37m"
+echo -e "\e[1;34m$(tr INSTALLING)\e[1;37m"
 if ! wget -q --show-progress -O "$ADDONS_DIR/${APPNAME,,}/${APPNAME,,}.AppImage" "$appimage_url"; then
-    echo "Failed to download $APPNAME AppImage. Exiting."
+    echo "$(tr DL_FAIL)"
     exit 1
 fi
 chmod a+x "$ADDONS_DIR/${APPNAME,,}/${APPNAME,,}.AppImage"
 
 # Download the application icon
 if ! wget -q --show-progress -O "$ADDONS_DIR/${APPNAME,,}/extra/${APPNAME,,}-icon.png" "$ICON_URL"; then
-    echo "Failed to download $APPNAME icon. Exiting."
+    echo "$(tr ICON_FAIL)"
     exit 1
 fi
 
 if ! wget -q --show-progress -O "$ADDONS_DIR/${APPNAME,,}/Launcher" "https://raw.githubusercontent.com/foclabroc/toolbox/refs/heads/main/gparted/extra/Launcher"; then
-    echo "Failed to download $APPNAME launcher. Exiting."
+    echo "$(tr LAUNCH_FAIL)"
     exit 1
 fi
 chmod +x "$ADDONS_DIR/${APPNAME,,}/Launcher"
@@ -73,7 +93,6 @@ if ! grep -q "${APP_CONFIG_DIR}/restore_desktop_entry.sh" "$CUSTOM_SCRIPT"; then
     echo "\"${APP_CONFIG_DIR}/restore_desktop_entry.sh\" &" >> "$CUSTOM_SCRIPT"
 fi
 
-echo -e "\e[1;32mInstallation complete! You can now launch Gparted from F1 menu."
+echo -e "\e[1;32m$(tr INSTALL_DONE)\e[1;37m"
 echo -e "-----------------------------------------------------------------------------------------"
-echo -e "Installation terminée ! Vous pouvez désormais lancer Gparted depuis le menu « F1 applications ».\e[1;37m"
 sleep 5

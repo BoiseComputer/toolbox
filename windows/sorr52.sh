@@ -1,7 +1,72 @@
 #!/bin/bash
 
-export LANG=fr_FR.UTF-8
-export LC_ALL=fr_FR.UTF-8
+LANG_UI="${LANG_UI:-}"
+LANG_FILE="/userdata/system/pro/lang_ui"
+
+if [ -z "$LANG_UI" ] && [ -f "$LANG_FILE" ]; then
+    LANG_UI="$(cat "$LANG_FILE" 2>/dev/null)"
+fi
+
+if [ -n "$LANG_UI" ]; then
+    export LANG_UI
+fi
+
+select_language() {
+    if [ -n "$LANG_UI" ]; then
+        return
+    fi
+    CHOICE=$(dialog --clear --backtitle "Foclabroc Toolbox" --title "Language / Langue" \
+        --menu "\nChoose your language / Choisissez votre langue :\n " 12 60 2 \
+        1 "English" \
+        2 "Français" \
+        2>&1 >/dev/tty)
+
+    case $CHOICE in
+        1) LANG_UI="en" ;;
+        2|"") LANG_UI="fr" ;;
+    esac
+
+    mkdir -p "$(dirname "$LANG_FILE")"
+    echo "$LANG_UI" > "$LANG_FILE"
+    export LANG_UI
+}
+
+tr() {
+    case "$LANG_UI:$1" in
+        en:REMOVE_OLD) echo "Removing old $2 if present...";;
+        fr:REMOVE_OLD) echo "Suppression ancien $2 si existant...";;
+        en:DOWNLOADING) echo "Downloading $2...";;
+        fr:DOWNLOADING) echo "Téléchargement de $2...";;
+        en:SPEED) echo "Speed: $2 MB/s | Downloaded: $3 / $4 MB";;
+        fr:SPEED) echo "Vitesse : $2 Mo/s | Téléchargé : $3 / $4 Mo";;
+        en:UNZIP) echo "Extracting $2...";;
+        fr:UNZIP) echo "Décompression de $2...";;
+        en:PAD2KEY) echo "Downloading pad2key...";;
+        fr:PAD2KEY) echo "Téléchargement du pad2key...";;
+        en:INSTALL_TITLE) echo "Installing $2";;
+        fr:INSTALL_TITLE) echo "Installation de $2";;
+        en:INSTALL_GAUGE) echo "\nDownloading and installing $2...";;
+        fr:INSTALL_GAUGE) echo "\nTéléchargement et installation de $2 en cours...";;
+        en:GAMELIST_TITLE) echo "Gamelist update";;
+        fr:GAMELIST_TITLE) echo "Edition du gamelist";;
+        en:GAMELIST_GAUGE) echo "\nAdding images and video to Windows gamelist...";;
+        fr:GAMELIST_GAUGE) echo "\nAjout images et video au gamelist windows...";;
+        en:DONE_TITLE) echo "Installation complete";;
+        fr:DONE_TITLE) echo "Installation terminée";;
+        en:DONE_MSG) echo "\n$2 has been added to Windows!\n\nRemember to update game lists to see it in the menu.\n$3";;
+        fr:DONE_MSG) echo "\n$2 a été ajouté dans windows !\n\nPensez à mettre à jour les listes de jeux pour le voir apparaître dans le menu. \n$3";;
+    esac
+}
+
+select_language
+
+if [ "$LANG_UI" = "en" ]; then
+    export LANG=en_US.UTF-8
+    export LC_ALL=en_US.UTF-8
+else
+    export LANG=fr_FR.UTF-8
+    export LC_ALL=fr_FR.UTF-8
+fi
 
 ##############################################################################################################
 ##############################################################################################################
@@ -21,7 +86,7 @@ INFO_MESSAGE=""
 IMAGE_BASE_URL="https://raw.githubusercontent.com/foclabroc/toolbox/refs/heads/main/_images"
 GAME_NAME="Street of Rage remake 5.2"
 GIT_NAME="sorr52"
-DESC="Street of Rage Remake est un beat'em up fangame développé par une équipe sous la direction d'un développeur espagnol nommé Bomber Link (connu aussi sous le nom de Link). C'était un remake de l'original Rues de Rage trilogie, avec l'utilisation de la mécanique de gameplay et le ton original de la série combinée avec des ajouts non présents dans les jeux originaux. Le jeu était particulièrement grand avec les inclusions de nombreux personnages jouables, des étapes de gameplay et des remixes de bandes sonores officielles de l'original Rues de Rage jeux. Le projet de fan a commencé le 17 mars 2003, et a été travaillé par plus de 20 personnes.."
+DESC=""
 DEV="Bomber Link"
 PUBLISH="Bomber Link"
 GENRE="beat'em up"
@@ -34,6 +99,16 @@ SCREENSHOT="$IMAGE_DIR/$GIT_NAME-s.png"
 WHEEL="$IMAGE_DIR/$GIT_NAME-w.png"
 THUMBNAIL="$IMAGE_DIR/$GIT_NAME-b.png"
 VIDEO="$VIDEO_DIR/$GIT_NAME-v.mp4"
+
+if [ "$LANG_UI" = "en" ]; then
+    DESC="Street of Rage Remake is a beat 'em up fangame led by the Spanish developer Bomber Link (also known as Link). It is a remake of the original Streets of Rage trilogy, using the original gameplay mechanics and tone while adding new content not present in the original games. The project started on March 17, 2003, and was worked on by more than 20 people."
+    LANG="en"
+    INFO_MESSAGE=""
+else
+    DESC="Street of Rage Remake est un beat'em up fangame développé par une équipe sous la direction d'un développeur espagnol nommé Bomber Link (connu aussi sous le nom de Link). C'était un remake de l'original Rues de Rage trilogie, avec l'utilisation de la mécanique de gameplay et le ton original de la série combinée avec des ajouts non présents dans les jeux originaux. Le jeu était particulièrement grand avec les inclusions de nombreux personnages jouables, des étapes de gameplay et des remixes de bandes sonores officielles de l'original Rues de Rage jeux. Le projet de fan a commencé le 17 mars 2003, et a été travaillé par plus de 20 personnes.."
+    LANG="fr"
+    INFO_MESSAGE=""
+fi
 
 ##############################################################################################################
 ##############################################################################################################
@@ -58,7 +133,7 @@ afficher_barre_progression() {
 
     (
         echo "XXX"
-        echo -e "\n\nSuppression ancien $GAME_NAME si existant..."
+        echo -e "\n\n$(tr REMOVE_OLD "$GAME_NAME")"
         echo "XXX"
         for i in {0..10}; do
             echo "$i"; sleep 0.10
@@ -86,8 +161,8 @@ afficher_barre_progression() {
                 [ "$PROGRESS" -gt 100 ] && PROGRESS=100
 
                 echo "XXX"
-                echo -e "\n\nTéléchargement de $GAME_NAME..."
-                echo -e "\nVitesse : ${SPEED_MO} Mo/s | Téléchargé : ${CURRENT_MB} / ${TOTAL_MB} Mo"
+                echo -e "\n\n$(tr DOWNLOADING "$GAME_NAME")"
+                echo -e "\n$(tr SPEED "${SPEED_MO}" "${CURRENT_MB}" "${TOTAL_MB}")"
                 echo "XXX"
                 echo "$PROGRESS"
             fi
@@ -98,7 +173,7 @@ afficher_barre_progression() {
 
         if [[ "$FILE_PATH" == *.zip ]]; then
             echo "XXX"
-            echo -e "\n\nDécompression de $GAME_NAME..."
+            echo -e "\n\n$(tr UNZIP "$GAME_NAME")"
             echo "XXX"
             for i in {0..100..2}; do
                 echo "$i"; sleep 0.05
@@ -109,7 +184,7 @@ afficher_barre_progression() {
 
         if [ -n "$URL_TELECHARGEMENT_KEY" ]; then
             echo "XXX"
-            echo -e "\n\nTéléchargement du pad2key..."
+            echo -e "\n\n$(tr PAD2KEY)"
             echo "XXX"
             curl -L --progress-bar "$URL_TELECHARGEMENT_KEY" -o "$WIN_DIR/${GAME_FILE}.keys" > /dev/null 2>&1
             for i in {0..100..2}; do
@@ -119,8 +194,8 @@ afficher_barre_progression() {
 
     ) |
     dialog --backtitle "Foclabroc Toolbox" \
-           --title "Installation de $GAME_NAME" \
-           --gauge "\nTéléchargement et installation de $GAME_NAME en cours..." 10 60 0 \
+           --title "$(tr INSTALL_TITLE "$GAME_NAME")" \
+           --gauge "$(tr INSTALL_GAUGE "$GAME_NAME")" 10 60 0 \
            2>&1 >/dev/tty
 
     rm -f "$TMP_FILE"
@@ -191,7 +266,7 @@ ajouter_entree_gamelist() {
         done
         echo "100"; sleep 0.2
     ) |
-    dialog --backtitle "Foclabroc Toolbox" --title "Edition du gamelist" --gauge "\nAjout images et video au gamelist windows..." 8 60 0 2>&1 >/dev/tty
+    dialog --backtitle "Foclabroc Toolbox" --title "$(tr GAMELIST_TITLE)" --gauge "$(tr GAMELIST_GAUGE)" 8 60 0 2>&1 >/dev/tty
 }
 
 # Exécution
@@ -199,5 +274,5 @@ afficher_barre_progression
 ajouter_entree_gamelist
 
 # Message de fin
-dialog --backtitle "Foclabroc Toolbox" --title "Installation terminée" --msgbox "\n$GAME_NAME a été ajouté dans windows !\n\nPensez à mettre à jour les listes de jeux pour le voir apparaître dans le menu. \n$INFO_MESSAGE" 13 60 2>&1 >/dev/tty
+dialog --backtitle "Foclabroc Toolbox" --title "$(tr DONE_TITLE)" --msgbox "$(tr DONE_MSG "$GAME_NAME" "$INFO_MESSAGE")" 13 60 2>&1 >/dev/tty
 clear

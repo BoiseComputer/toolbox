@@ -3,9 +3,22 @@
 # ===============================
 # LANGUAGE SELECTION
 # ===============================
-LANG_UI="fr"
+LANG_UI="${LANG_UI:-}"
+LANG_FILE="/userdata/system/pro/lang_ui"
+
+if [ -z "$LANG_UI" ] && [ -f "$LANG_FILE" ]; then
+    LANG_UI=$(cat "$LANG_FILE")
+fi
+
+if [ "$LANG_UI" != "en" ] && [ "$LANG_UI" != "fr" ]; then
+    LANG_UI=""
+fi
 
 select_language() {
+    if [ -n "$LANG_UI" ]; then
+        return
+    fi
+
     dialog --backtitle "Foclabroc Switch AppImages Updater" \
            --title "Language / Langue" \
 		   --ok-label "OK" \
@@ -21,6 +34,7 @@ select_language() {
 
     LANG_UI=$(cat /tmp/lang.choice)
     rm -f /tmp/lang.choice
+    echo "$LANG_UI" > "$LANG_FILE"
 }
 
 tr() {

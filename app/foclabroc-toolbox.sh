@@ -19,9 +19,24 @@ trap 'rm -f "$tmpfile1" "$tmpfile2"; exit' INT TERM EXIT
 # Création fichier temporaire
 tmpfile1=$(mktemp) && tmpfile2=$(mktemp)
 
+LANG_UI="${LANG_UI:-}"
+LANG_FILE="/userdata/system/pro/lang_ui"
 LANGUAGE="fr"
 
+if [ -z "$LANG_UI" ] && [ -f "$LANG_FILE" ]; then
+  LANG_UI=$(cat "$LANG_FILE")
+fi
+
+if [ "$LANG_UI" = "en" ] || [ "$LANG_UI" = "fr" ]; then
+  LANGUAGE="$LANG_UI"
+fi
+
 choose_language() {
+  if [ -n "$LANG_UI" ]; then
+    LANGUAGE="$LANG_UI"
+    return
+  fi
+
   CHOICE=$(dialog --clear --backtitle "Foclabroc Toolbox" --title "Language / Langue" \
     --menu "\nChoose your language / Choisissez votre langue :\n " 12 60 2 \
     1 "English" \
@@ -32,6 +47,9 @@ choose_language() {
     1) LANGUAGE="en" ;;
     2|"") LANGUAGE="fr" ;;
   esac
+
+  LANG_UI="$LANGUAGE"
+  echo "$LANG_UI" > "$LANG_FILE"
 }
 
 set_language_strings() {
@@ -526,6 +544,7 @@ main_menu() {
 
 # Lancer les vérifications et afficher le menu
 choose_language
+export LANG_UI
 set_language_strings
 write_intro_files
 show_intro

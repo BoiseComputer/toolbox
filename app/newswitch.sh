@@ -34,7 +34,7 @@ case "$LANGUE:$1" in
 1:step_install) echo "Downloading/Installing new Switch pack";;
 2:step_install) echo "Téléchargement/Installation du nouveau pack Switch";;
 
-1:step_restore) echo "Restoring user switch save/profils/mods";;
+1:step_restore) echo "Restoring user switch save/profiles/mods";;
 2:step_restore) echo "Restauration des sauvegardes/profils/mods switch";;
 
 1:restore_done) echo "Restoration completed ✔️";;
@@ -61,6 +61,9 @@ case "$LANGUE:$1" in
 
 1:error) echo "An error occurred.";;
 2:error) echo "Une erreur s’est produite.";;
+
+1:extraction_failed) echo "Extraction failed.";;
+2:extraction_failed) echo "Échec de l'extraction.";;
 
 1:returnmenu) echo "Returning to main menu...";;
 2:returnmenu) echo "Retour au menu principal...";;
@@ -125,6 +128,12 @@ case "$LANGUE:$1" in
 1:download_finished) echo "Download complete";;
 2:download_finished) echo "Telechargement termine";;
 
+1:download_error) echo "Download error";;
+2:download_error) echo "Erreur de téléchargement";;
+
+1:check_connection) echo "Please check your connection and try again.";;
+2:check_connection) echo "Veuillez vérifier votre connexion et réessayer.";;
+
 1:finalizing) echo "\nFinalizing...\n\n[may take some time if you have large Mods like (CTGP-DX...)]";;
 2:finalizing) echo "\nFinalisation...\n\n[peut prendre du temps si vous avez de gros Mods comme (CTGP-DX...)]";;
 
@@ -136,6 +145,18 @@ case "$LANGUE:$1" in
 
 1:update_emu_running) echo "Updating emulator AppImages...";;
 2:update_emu_running) echo "Mise à jour des AppImages des émulateurs...";;
+
+1:action_prompt) echo "Choose an action:";;
+2:action_prompt) echo "Choisissez une action :";;
+
+1:install_title) echo "Installation";;
+2:install_title) echo "Installation";;
+
+1:download_err_title) echo "Download error";;
+2:download_err_title) echo "Erreur téléchargement";;
+
+1:download_err_msg) echo "Unable to download the pack after several attempts.";;
+2:download_err_msg) echo "Impossible de télécharger le pack après plusieurs tentatives.";;
 
 1:finished_full) cat <<EOF
 Switch installation completed
@@ -284,6 +305,22 @@ LANGUE=$(dialog --backtitle "$BACKTITLE" \
 clear
 [ -z "$LANGUE" ] && exit 0
 
+LANG_CODE="fr"
+DESC_RYUJINX="Lancement de RYUJINX en mode application pour configuration manuelle."
+DESC_EDEN="Lancement de EDEN en mode application pour configuration manuelle de Eden."
+DESC_CITRON="Lancement de CITRON en mode application pour configuration manuelle de Citron."
+DESC_UPDATER="Script de Mise à jour des emulateurs Switch."
+DESC_QHOME="Démarrage en mode Ecran d'accueil Switch réel (qlauncher) A lancer uniquement avec EDEN !!!."
+
+if [[ "$LANGUE" == "1" ]]; then
+    LANG_CODE="en"
+    DESC_RYUJINX="Launch RYUJINX in application mode for manual configuration."
+    DESC_EDEN="Launch EDEN in application mode for manual configuration."
+    DESC_CITRON="Launch CITRON in application mode for manual configuration."
+    DESC_UPDATER="Switch emulator update script."
+    DESC_QHOME="Launch the real Switch home screen (qlauncher). Only with EDEN!"
+fi
+
 ##############################################################
 # 📦 Choix du mode
 ##############################################################
@@ -292,7 +329,7 @@ MODE=$(dialog --backtitle "$BACKTITLE" \
               --title "$(TXT welcome)" \
               --ok-label "$(TXT ok)" \
               --cancel-label "$(TXT cancel)" \
-              --menu "\nChoisissez une action / Choose an action:" 11 80 2 \
+              --menu "\n$(TXT action_prompt)" 11 80 2 \
               1 "$(TXT update_emu)" \
               2 "$(TXT full_install)" \
               3>&1 1>&2 2>&3)
@@ -306,7 +343,7 @@ clear
 
 if [[ "$MODE" == "1" ]]; then
     dialog --backtitle "$BACKTITLE" \
-           --infobox "\nUpdate AppImages..." 5 60
+           --infobox "\n$(TXT update_emu_running)" 5 60
     sleep 1
 
     clear
@@ -373,7 +410,7 @@ update_steps() {
     done
 
     dialog --backtitle "$BACKTITLE" \
-           --title "Installation" \
+           --title "$(TXT install_title)" \
            --infobox "$(cat "$TMPFILE")" 14 94
 }
 
@@ -417,7 +454,7 @@ backup_switch_data() {
 
 	# Désactiver après usage (important)
 	shopt -u dotglob
-	
+
 	mark_step_done "backup"
 }
 
@@ -509,15 +546,15 @@ remove_old_installations() {
     if [[ -f "$CUSTOM" ]]; then
         sed -i '\|/userdata/system/switch/extra/batocera-switch-startup|d' "$CUSTOM"
     fi
-    
+
     BATOCERA_CONF="/userdata/system/batocera.conf"
 	if [[ -f "$BATOCERA_CONF" ]]; then
 		# Récupère la langue système Batocera
 		batocera_language=$(grep '^system.language=' "$BATOCERA_CONF" | cut -d '=' -f2)
-		
+
 		# Supprime toutes les anciennes lignes switch
 		sed -i '/^switch/d' "$BATOCERA_CONF"
-		
+
 		# Ajoute la config UNIQUEMENT si absente
 		grep -q 'switch\["citron_config.xci_config"\]\.core=citron-emu' "$BATOCERA_CONF" || \
 		echo 'switch["citron_config.xci_config"].core=citron-emu' >> "$BATOCERA_CONF"
@@ -566,8 +603,8 @@ install_new_pack() {
 	WGET_STATUS=$?
 
 	if [ $WGET_STATUS -ne 0 ] || [ ! -s "$PACK_ZIP" ]; then
-		dialog --title "Erreur téléchargement" \
-			   --msgbox "Impossible de télécharger le pack après plusieurs tentatives." 8 60
+        dialog --title "$(TXT download_err_title)" \
+               --msgbox "$(TXT download_err_msg)" 8 60
 		rm -f "$PACK_ZIP"
 		return 1
 	fi
@@ -583,7 +620,7 @@ install_new_pack() {
 
 	# Vérification de sécurité
 	[[ -d "$ROOT_DIR" ]] || {
-		dialog --backtitle "$BACKTITLE" --msgbox "\n$(TXT error)\nExtraction failed." 6 50
+        dialog --backtitle "$BACKTITLE" --msgbox "\n$(TXT error)\n$(TXT extraction_failed)" 6 50
 		exit 1
 	}
 
@@ -642,13 +679,13 @@ remove_game_by_path() {
         -s "/gameList" -t elem -n "game" -v "" \
         -s "/gameList/game[last()]" -t elem -n "path" -v "./ryujinx_config.xci_config" \
         -s "/gameList/game[last()]" -t elem -n "name" -v "1-Ryujinx Config App" \
-        -s "/gameList/game[last()]" -t elem -n "desc" -v "Lancement de RYUJINX en mode application pour configuration manuelle." \
+        -s "/gameList/game[last()]" -t elem -n "desc" -v "$DESC_RYUJINX" \
         -s "/gameList/game[last()]" -t elem -n "developer" -v "Foclabroc DreamerCG Spirit" \
         -s "/gameList/game[last()]" -t elem -n "publisher" -v "Foclabroc DreamerCG Spirit" \
         -s "/gameList/game[last()]" -t elem -n "genre" -v "Switch" \
         -s "/gameList/game[last()]" -t elem -n "rating" -v "1.00" \
         -s "/gameList/game[last()]" -t elem -n "region" -v "eu" \
-        -s "/gameList/game[last()]" -t elem -n "lang" -v "fr" \
+        -s "/gameList/game[last()]" -t elem -n "lang" -v "$LANG_CODE" \
         -s "/gameList/game[last()]" -t elem -n "image" -v "./images/ryujinx_config_screen.png" \
         -s "/gameList/game[last()]" -t elem -n "wheel" -v "./images/ryujinx_config_logo.png" \
         -s "/gameList/game[last()]" -t elem -n "thumbnail" -v "./images/ryujinx_config.png" \
@@ -661,13 +698,13 @@ remove_game_by_path() {
         -s "/gameList" -t elem -n "game" -v "" \
         -s "/gameList/game[last()]" -t elem -n "path" -v "./eden_config.xci_config" \
         -s "/gameList/game[last()]" -t elem -n "name" -v "1-Eden Config App" \
-        -s "/gameList/game[last()]" -t elem -n "desc" -v "Lancement de EDEN en mode application pour configuration manuelle de Eden." \
+        -s "/gameList/game[last()]" -t elem -n "desc" -v "$DESC_EDEN" \
         -s "/gameList/game[last()]" -t elem -n "developer" -v "Foclabroc DreamerCG Spirit" \
         -s "/gameList/game[last()]" -t elem -n "publisher" -v "Foclabroc DreamerCG Spirit" \
         -s "/gameList/game[last()]" -t elem -n "genre" -v "Switch" \
         -s "/gameList/game[last()]" -t elem -n "rating" -v "1.00" \
         -s "/gameList/game[last()]" -t elem -n "region" -v "eu" \
-        -s "/gameList/game[last()]" -t elem -n "lang" -v "fr" \
+        -s "/gameList/game[last()]" -t elem -n "lang" -v "$LANG_CODE" \
         -s "/gameList/game[last()]" -t elem -n "image" -v "./images/yuzu_config_screen.png" \
         -s "/gameList/game[last()]" -t elem -n "wheel" -v "./images/yuzu_config_logo.png" \
         -s "/gameList/game[last()]" -t elem -n "thumbnail" -v "./images/yuzu_config.png" \
@@ -680,13 +717,13 @@ remove_game_by_path() {
         -s "/gameList" -t elem -n "game" -v "" \
         -s "/gameList/game[last()]" -t elem -n "path" -v "./citron_config.xci_config" \
         -s "/gameList/game[last()]" -t elem -n "name" -v "1-Citron Config App" \
-        -s "/gameList/game[last()]" -t elem -n "desc" -v "Lancement de CITRON en mode application pour configuration manuelle de Citron." \
+        -s "/gameList/game[last()]" -t elem -n "desc" -v "$DESC_CITRON" \
         -s "/gameList/game[last()]" -t elem -n "developer" -v "Foclabroc DreamerCG Spirit" \
         -s "/gameList/game[last()]" -t elem -n "publisher" -v "Foclabroc DreamerCG Spirit" \
         -s "/gameList/game[last()]" -t elem -n "genre" -v "Switch" \
         -s "/gameList/game[last()]" -t elem -n "rating" -v "1.00" \
         -s "/gameList/game[last()]" -t elem -n "region" -v "eu" \
-        -s "/gameList/game[last()]" -t elem -n "lang" -v "fr" \
+        -s "/gameList/game[last()]" -t elem -n "lang" -v "$LANG_CODE" \
         -s "/gameList/game[last()]" -t elem -n "image" -v "./images/citron_config_screen.png" \
         -s "/gameList/game[last()]" -t elem -n "wheel" -v "./images/citron_config_logo.png" \
         -s "/gameList/game[last()]" -t elem -n "thumbnail" -v "./images/citron_config.png" \
@@ -699,13 +736,13 @@ remove_game_by_path() {
         -s "/gameList" -t elem -n "game" -v "" \
         -s "/gameList/game[last()]" -t elem -n "path" -v "./Switch AppImages Updater.sh" \
         -s "/gameList/game[last()]" -t elem -n "name" -v "Switch Emulator Updater" \
-        -s "/gameList/game[last()]" -t elem -n "desc" -v "Script de Mise à jour des emulateurs Switch." \
+        -s "/gameList/game[last()]" -t elem -n "desc" -v "$DESC_UPDATER" \
         -s "/gameList/game[last()]" -t elem -n "developer" -v "Foclabroc" \
         -s "/gameList/game[last()]" -t elem -n "publisher" -v "Foclabroc" \
         -s "/gameList/game[last()]" -t elem -n "genre" -v "Switch" \
         -s "/gameList/game[last()]" -t elem -n "rating" -v "1.00" \
         -s "/gameList/game[last()]" -t elem -n "region" -v "eu" \
-        -s "/gameList/game[last()]" -t elem -n "lang" -v "fr" \
+        -s "/gameList/game[last()]" -t elem -n "lang" -v "$LANG_CODE" \
         -s "/gameList/game[last()]" -t elem -n "image" -v "./images/updater_app_screen.png" \
         -s "/gameList/game[last()]" -t elem -n "wheel" -v "./images/updater_app_logo.png" \
         -s "/gameList/game[last()]" -t elem -n "thumbnail" -v "./images/updater_app.png" \
@@ -718,13 +755,13 @@ remove_game_by_path() {
         -s "/gameList" -t elem -n "game" -v "" \
         -s "/gameList/game[last()]" -t elem -n "path" -v "./eden_qlaunch.xci_config" \
         -s "/gameList/game[last()]" -t elem -n "name" -v "1-Switch Home Menu (Only with Eden-emu)" \
-        -s "/gameList/game[last()]" -t elem -n "desc" -v "Démarrage en mode Ecran d'accueil Switch réel (qlauncher) A lancer uniquement avec EDEN !!!." \
+        -s "/gameList/game[last()]" -t elem -n "desc" -v "$DESC_QHOME" \
         -s "/gameList/game[last()]" -t elem -n "developer" -v "Foclabroc" \
         -s "/gameList/game[last()]" -t elem -n "publisher" -v "Foclabroc" \
         -s "/gameList/game[last()]" -t elem -n "genre" -v "Switch" \
         -s "/gameList/game[last()]" -t elem -n "rating" -v "1.00" \
         -s "/gameList/game[last()]" -t elem -n "region" -v "eu" \
-        -s "/gameList/game[last()]" -t elem -n "lang" -v "fr" \
+        -s "/gameList/game[last()]" -t elem -n "lang" -v "$LANG_CODE" \
         -s "/gameList/game[last()]" -t elem -n "image" -v "./images/_Switch-Home-menu-screen.png" \
         -s "/gameList/game[last()]" -t elem -n "wheel" -v "./images/_Switch-Home-menu-logo.png" \
         -s "/gameList/game[last()]" -t elem -n "thumbnail" -v "./images/_Switch-Home-menu-box.png" \
@@ -1119,6 +1156,3 @@ curl http://127.0.0.1:1234/reloadgames
 clear
 reset
 exit 0
-
-
-
